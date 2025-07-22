@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Stock Analysis</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">AI-Powered Stock Analysis</h1>
+        <div class="form-group mt-3">
+            <input type="text" id="ticker" class="form-control" placeholder="Enter Stock Ticker (e.g., AAPL)">
+        </div>
+        <button id="getData" class="btn btn-primary">Get Stock Data</button>
+        <button id="getForecast" class="btn btn-secondary">Get Forecast</button>
+        <button id="getSentiment" class="btn btn-info">Get Sentiment</button>
+
+        <div id="stockData" class="mt-5">
+            <h2>Stock Data</h2>
+            <div id="chart"></div>
+            <pre id="stockJson"></pre>
+        </div>
+
+        <div id="forecastData" class="mt-5">
+            <h2>Forecast</h2>
+            <div id="forecastChart"></div>
+            <pre id="forecastJson"></pre>
+        </div>
+
+        <div id="sentimentData" class="mt-5">
+            <h2>Sentiment</h2>
+            <ul id="sentimentList" class="list-group"></ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("#getData").click(function() {
+                let ticker = $("#ticker").val();
+                $.get(`/stock/${ticker}`, function(data) {
+                    $("#stockJson").text(JSON.stringify(data, null, 2));
+                    let dates = data.map(item => item.Date);
+                    let closes = data.map(item => item.Close);
+                    let trace = {
+                        x: dates,
+                        y: closes,
+                        mode: 'lines',
+                        name: 'Close'
+                    };
+                    let layout = {
+                        title: `${ticker} Stock Price`
+                    };
+                    Plotly.newPlot('chart', [trace], layout);
+                });
+            });
+
+            $("#getForecast").click(function() {
+                let ticker = $("#ticker").val();
+                $.get(`/forecast/${ticker}`, function(data) {
+                    $("#forecastJson").text(JSON.stringify(data, null, 2));
+                    let dates = data.map(item => item.ds);
+                    let forecasts = data.map(item => item.yhat);
+                    let trace = {
+                        x: dates,
+                        y: forecasts,
+                        mode: 'lines',
+                        name: 'Forecast'
+                    };
+                    let layout = {
+                        title: `${ticker} Price Forecast`
+                    };
+                    Plotly.newPlot('forecastChart', [trace], layout);
+                });
+            });
+
+            $("#getSentiment").click(function() {
+                let ticker = $("#ticker").val();
+                $.get(`/sentiment/${ticker}`, function(data) {
+                    $("#sentimentList").empty();
+                    data.forEach(item => {
+                        let sentiment = item.sentiment.compound > 0 ? 'Positive' : (item.sentiment.compound < 0 ? 'Negative' : 'Neutral');
+                        $("#sentimentList").append(`<li class="list-group-item">${item.title} - <strong>${sentiment}</strong></li>`);
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
